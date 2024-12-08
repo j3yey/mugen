@@ -318,6 +318,7 @@
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         border: 1px solid rgba(255, 255, 255, 0.3);
         max-height: 800px;
+        height: 770px;
         z-index: 1;
         display: flex;
         flex-direction: column;
@@ -374,9 +375,11 @@
     backdrop-filter: blur(10px);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.3);
-    max-height: 800px;
+    max-height: 770px;
     z-index: 1;
     position: relative;
+    height: 900px;
+    top:55px;
 }
 
 /* Search bar styles inside search-results-container */
@@ -428,7 +431,6 @@
     margin-top: 5px;
 }
 
-
     .search-results-container h2 {
         position: sticky;
         top: 0;
@@ -440,9 +442,4 @@
         border-radius: 5px;
     }
 
-    
-
-    
-
-   
    </style>
