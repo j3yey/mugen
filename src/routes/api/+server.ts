@@ -10,40 +10,93 @@ import CryptoJS from "crypto-js";
 
 const JIKAN_BASE_URL = 'https://api.jikan.moe/v4';
 
-// Define types for the Jikan API response
 interface Anime {
     mal_id: number;
     title: string;
     images: {
         jpg: {
             image_url: string;
+            large_image_url?: string;  // Optional large image URL
         };
     };
 }
 
-interface JikanSearchResponse {
-    data: Anime[];
-}
+const getAnimeImages = (anime: Anime) => {
+    return anime.images.jpg.large_image_url || anime.images.jpg.image_url;
+};
 
-interface JikanRecommendationsResponse {
-    data: {
-        entry: Anime;
-    }[];
-}
+const fetchGenres = async () => {
+    const response = await fetch(`${JIKAN_BASE_URL}/genres/anime`);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch genres: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.data; // Jikan API returns genres in `data`
+};
 
+// Define the handler for various query types
 export const GET: RequestHandler = async ({ url }) => {
-    const searchQuery = url.searchParams.get('search');
-    const recommendationsForId = url.searchParams.get('recommendations');
+    const searchQuery = url.searchParams.get('search'); // Get search query
+    const recommendationsForId = url.searchParams.get('recommendations'); // Get recommendations
+    const isTopRanked = url.searchParams.get('top'); // Check if top-ranked anime is requested
+    const genres = url.searchParams.get('genres'); // Get genres filter if provided
 
-    if (searchQuery) {
+    // Fetch anime by search query and genres
+    if (searchQuery || genres) {
         try {
-            const response = await fetch(`${JIKAN_BASE_URL}/anime?q=${encodeURIComponent(searchQuery)}&limit=10`);
+            const params = new URLSearchParams();
+
+            if (searchQuery) params.append('q', searchQuery);
+            if (genres) params.append('genres', genres); // Jikan API supports filtering by genres (comma-separated)
+            params.append('limit', '10'); // Limit the results to 10
+
+            const response = await fetch(`${JIKAN_BASE_URL}/anime?${params.toString()}`);
             if (!response.ok) {
-                throw new Error(`Failed to fetch search results: ${response.statusText}`);
+                throw new Error(`Failed to fetch anime: ${response.statusText}`);
             }
 
-            const data: JikanSearchResponse = await response.json();
+            const data = await response.json();
             return json({ searchResults: data.data });
+        } catch (error) {
+            return json({ error: (error as Error).message }, { status: 500 });
+        }
+    }
+
+    // Fetch recommendations for a specific anime
+    if (recommendationsForId) {
+        try {
+            const response = await fetch(`${JIKAN_BASE_URL}/anime/${recommendationsForId}/recommendations`);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch recommendations: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            return json({ recommendations: data.data });
+        } catch (error) {
+            return json({ error: (error as Error).message }, { status: 500 });
+        }
+    }
+
+    // Fetch top-ranked anime
+    if (isTopRanked) {
+        try {
+            const response = await fetch(`${JIKAN_BASE_URL}/top/anime`);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch top-ranked anime: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            return json({ topRankedAnime: data.data });
+        } catch (error) {
+            return json({ error: (error as Error).message }, { status: 500 });
+        }
+    }
+
+    // Fetch genres
+    if (url.searchParams.has('genres') && !searchQuery && !genres) {
+        try {
+            const genresData = await fetchGenres();
+            return json({ genres: genresData });
         } catch (error) {
             return json({ error: (error as Error).message }, { status: 500 });
         }
@@ -63,9 +116,23 @@ export const GET: RequestHandler = async ({ url }) => {
         }
     }
 
-    // Default response if no search or recommendations are requested
-    return json({ message: "No search query or recommendations provided." }, { status: 400 });
+    if (isTopRanked) {
+        try {
+            const response = await fetch(`${JIKAN_BASE_URL}/top/anime`);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch top-ranked anime: ${response.statusText}`);
+            }
+
+            const data: JikanSearchResponse = await response.json();
+            return json({ topRankedAnime: data.data });
+        } catch (error) {
+            return json({ error: (error as Error).message }, { status: 500 });
+        }
+    }
+
+    return json({ message: "No valid query provided." }, { status: 400 });
 };
+
 
 // POST: Login
 export const POST: RequestHandler = async ({ request }) => {

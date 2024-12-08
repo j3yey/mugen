@@ -71,7 +71,7 @@
         font-family: 'Poppins', sans-serif;
         position: relative;
         transition: background 0.3s ease;
-        background-color: black;
+        background-image: url('mugenbg.jpg');
     }
 
   
