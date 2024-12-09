@@ -6,7 +6,7 @@
     let password = '';
     let key = 'JohnAdrian'; // Replace with a secure key
     let message = '';
-
+    
     async function register() {
         if (!username || !password) {
             message = 'Please fill in all fields.';
@@ -28,7 +28,8 @@
             const data = await response.json();
 
             if (data.success) {
-                message = 'Registration successful! Redirecting to login...';
+                
+                message = 'Registration successful!';
                 setTimeout(() => {
                     goto('/'); // Redirect to the login page
                 }, 2000);

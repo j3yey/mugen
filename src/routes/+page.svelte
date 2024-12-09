@@ -21,7 +21,7 @@
             const data = await response.json();
 
             if (data.success) {
-                message = 'Login successful! Redirecting to /home...';
+                message = 'Login successful!';
                 setTimeout(() => {
                     goto('/home'); // Redirect to /home
                 }, 2000); // Delay to allow user to see the success message
@@ -190,7 +190,7 @@
 }
 
 .description {
-    color: #000; /* Black text */
+    color: white;
     font-family: 'Poppins', sans-serif;
     font-size: 1.5rem;
     line-height: 1.5;
