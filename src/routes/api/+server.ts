@@ -1,6 +1,6 @@
+import { json, type RequestEvent, type RequestHandler } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { tblUsers } from '$lib/server/db/schema';
-import { json, type RequestHandler } from '@sveltejs/kit';
 import { sha512 } from 'js-sha512';
 import fetch from 'node-fetch';
 import { eq } from 'drizzle-orm';
@@ -23,10 +23,6 @@ interface Genre {
     mal_id: number;
     name: string;
 }
-
-const getAnimeImages = (anime: Anime) => {
-    return anime.images.jpg.large_image_url || anime.images.jpg.image_url;
-};
 
 const fetchGenres = async (): Promise<Genre[]> => {
     const response = await fetch(`${JIKAN_BASE_URL}/genres/anime`);
@@ -66,14 +62,27 @@ async function fetchWithRetry(url: string, options = {}, maxRetries = 3) {
 }
 
 // Define the handler for various query types
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async (event: RequestEvent) => {
+    const { url } = event;
     const searchQuery = url.searchParams.get('search');
     const recommendationsForId = url.searchParams.get('recommendations');
     const isTopRanked = url.searchParams.get('top');
     const genresFilter = url.searchParams.get('genres');
-    const fetchGenresOnly = url.searchParams.get('fetchGenres'); // To fetch genres only
+    const fetchGenresOnly = url.searchParams.get('fetchGenres');
+    const animeDetails = url.searchParams.get('animeDetails');
 
     try {
+        // Fetch specific anime details
+        if (animeDetails) {
+            const response = await fetch(`${JIKAN_BASE_URL}/anime/${animeDetails}`);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch anime details: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            return json({ animeDetails: data.data });
+        }
+
         // Fetch genres explicitly if fetchGenresOnly parameter is present
         if (fetchGenresOnly) {
             const genresData = await fetchGenres();
@@ -169,8 +178,11 @@ export const GET: RequestHandler = async ({ url }) => {
 
             return json({ topRankedAnime: allTopRankedAnime });
         }
+
+        // If no specific query is matched
+        return json({ error: 'No valid query provided' }, { status: 400 });
     } catch (error) {
-        console.error('Error in top ranked anime fetch:', error);
+        console.error('Error in API handler:', error);
         return json({ error: (error as Error).message }, { status: 500 });
     }
 };
@@ -215,4 +227,17 @@ export const PUT: RequestHandler = async ({ request }) => {
     });
 
     return json({ success: query.changes > 0, message: "Registration successful!" });
+};
+export const DELETE: RequestHandler = async ({ request }) => {
+    try {
+        // Perform any session cleanup logic here (e.g., deleting cookies, invalidating tokens)
+
+        return json(
+            { success: true, message: 'Logout successful!' },
+            { headers: { Location: '/home', status: 302 } } // Redirect to login page
+        );
+    } catch (error) {
+        console.error('Error during logout:', error);
+        return json({ success: false, message: 'Logout failed.' }, { status: 500 });
+    }
 };

@@ -123,6 +123,7 @@
         border-radius: 10px;
         background: rgba(255, 255, 255, 0.9);
         font-size: 1.2rem;
+        color: black !important;
     }
 
     .input-group input:focus {

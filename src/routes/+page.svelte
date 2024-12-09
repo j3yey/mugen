@@ -117,6 +117,7 @@
         border-radius: 10px; /* Slightly rounded corners */
         background: rgba(255, 255, 255, 0.9); /* Slightly brighter input background */
         font-size: 1.2rem; /* Larger input text */
+        color: black !important;
     }
 
     .input-group input:focus {
