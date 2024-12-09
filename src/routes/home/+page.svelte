@@ -2,6 +2,11 @@
     import { onMount } from 'svelte';
     import { writable } from 'svelte/store';
 
+    interface Genre {
+        mal_id: number;
+        name: string;
+    }
+
     // Define interfaces for the fetched data
     interface Anime {
         mal_id: number;
@@ -29,16 +34,20 @@
     }
 
     let searchQuery = '';
+    let selectedGenre = '';
+    let genres = writable<Genre[]>([]);
     let searchResults = writable<Anime[]>([]);
     let recommendations = writable<Record<number, Recommendation[]>>({});
     let topRankedAnime = writable<Anime[]>([]);
-    let selectedAnime = writable<Anime | null>(null); // New store to track selected anime
+    let selectedAnime = writable<Anime | null>(null);
 
-    const fetchSearchResults = async () => {
-        if (!searchQuery.trim()) return;
-
+        const fetchSearchResults = async () => {
         try {
-            const res = await fetch(`/api?search=${encodeURIComponent(searchQuery)}`);
+            const params = new URLSearchParams();
+            if (searchQuery.trim()) params.append('search', searchQuery);
+            if (selectedGenre) params.append('genres', selectedGenre);
+
+            const res = await fetch(`/api?${params.toString()}`);
             if (!res.ok) throw new Error(await res.text());
 
             const data: { searchResults: Anime[] } = await res.json();
@@ -48,6 +57,17 @@
         }
     };
 
+    const fetchGenres = async () => {
+        try {
+            const res = await fetch('/api?fetchGenres=true');
+            if (!res.ok) throw new Error(await res.text());
+
+            const data: { genres: Genre[] } = await res.json();
+            genres.set(data.genres);
+        } catch (err) {
+            console.error('Error fetching genres:', err);
+        }
+    };
     const fetchRecommendations = async (animeId: number) => {
         try {
             const res = await fetch(`/api?recommendations=${animeId}`);
@@ -81,6 +101,7 @@
 
     onMount(() => {
         fetchTopRankedAnime();
+        fetchGenres();  // This will now use the new endpoint parameter
     });
 
     // Reactive statement to update the background when a new anime is selected
@@ -118,7 +139,7 @@
 
    <!-- New Search Results Container -->
    <div class="search-results-container">
-    <h2>Search Results</h2>
+    
     <!-- Search Bar Inside Search Results Container -->
     <div class="search-bar">
         <input
@@ -126,6 +147,12 @@
             placeholder="Search for an anime..."
             bind:value={searchQuery}
         />
+        <select bind:value={selectedGenre}>
+            <option value="">All Genres</option>
+            {#each $genres as genre}
+                <option value={genre.mal_id}>{genre.name}</option>
+            {/each}
+        </select>
         <button on:click={fetchSearchResults}>Search</button>
     </div>
 
@@ -220,20 +247,6 @@
        background-color: lightblue ;
    }
    
-   
-   .container {
-       display: flex;
-       flex-wrap: wrap;
-       justify-content: flex-start;
-       position: relative;
-       z-index: 1;
-   }
-   
-   .results {
-       flex: 1;
-       margin-left: 20px; /* Add margin to the left for spacing */
-   }
-   
    .top-ranked-container {
     position: absolute; /* Allows free positioning within the parent */
     top: 100px; /* Adjust to move it down as needed */
@@ -243,7 +256,6 @@
     border-radius: 10px;
     background: rgba(255, 255, 255, 0.15); /* Light glassy effect */
     backdrop-filter: blur(10px); /* Blur effect */
-    -webkit-backdrop-filter: blur(10px); /* Safari support */
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Add a subtle shadow */
     border: 1px solid rgba(255, 255, 255, 0.3); /* Border for better visibility */
     max-height: 800px; /* Maximum height of the entire container */
@@ -255,7 +267,6 @@
 .top-ranked-container h2 {
     position: sticky;
     top: 0;
-    
     padding: 10px;
     margin: 0;
     font-size: 18px;
@@ -270,28 +281,9 @@
     overflow-y: auto; /* Allows scrolling but hides arrows when not needed */
     flex-grow: 1;
     max-height: 700px;
-    padding-right: 10px;
-    scrollbar-width: thin; /* Firefox: thin scrollbar */
-    scrollbar-color: rgba(0, 0, 0, 0.4) transparent; /* Firefox: thumb color */
+    padding-right: 10px;    
 }
 
-/* For WebKit-based browsers (Chrome, Safari, Edge), style the scrollbar */
-.top-ranked-list::-webkit-scrollbar {
-    width: 6px; /* Small width for the scrollbar */
-}
-
-.top-ranked-list::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.4); /* Dark color for the thumb */
-    border-radius: 10px;
-}
-
-.top-ranked-list::-webkit-scrollbar-track {
-    background-color: transparent; /* Transparent track */
-}
-
-.top-ranked-list::-webkit-scrollbar-button {
-    display: none; /* Hide the arrows on WebKit browsers */
-}
 
 .top-ranked img {
     max-width: 80px;
