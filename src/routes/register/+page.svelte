@@ -197,7 +197,7 @@
     }
 
     .description {
-        color: #000;
+        color: white;
         font-family: 'Poppins', sans-serif;
         font-size: 1.5rem;
         line-height: 1.5;
